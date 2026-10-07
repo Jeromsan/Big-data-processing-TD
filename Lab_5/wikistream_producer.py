@@ -10,6 +10,14 @@ from datetime import datetime, timedelta
 # Serializer function to change message from python dict to json
 value_serializer = lambda val: json.dumps(val).encode('utf-8')
 
+# %% Event Filters
+# Set this to another language code to follow that Wikipedia, e.g. "en" or "de".
+WIKI_LANGUAGE = "fr"
+
+# Leave empty to follow all matching pages. Page titles must match exactly,
+# including capitalization; e.g. ("Python (langage)", "Paris").
+PAGE_TITLES = ()
+
 # %% Producder Instantiation
 # Set the producer configuration
 conf = {'bootstrap.servers': 'localhost:9092',
@@ -24,7 +32,15 @@ producer = Producer(conf)
 stream = EventStreams(
   streams=['recentchange', 'revision-create'], since='20260209'
 )
-stream.register_filter(server_name='fr.wikipedia.org', type='edit')
+
+# Filters registered with the default ftype="all" are combined with AND:
+# events must match the wiki, event type, and (when configured) one page title.
+stream.register_filter(
+  server_name=f'{WIKI_LANGUAGE}.wikipedia.org',
+  type='edit'
+)
+if PAGE_TITLES:
+  stream.register_filter(title=PAGE_TITLES)
 
 # %% Query EventStream
 # Run a single query and inspect raw and example formatted output
